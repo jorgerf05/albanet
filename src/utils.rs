@@ -126,7 +126,7 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
         Ok(vec) => {
             println!(
                 "{} {} {}",
-                "\n[+] There are".yellow(),
+                "[+] There are".yellow(),
                  vec.len().to_string().green(),
                  "active hosts. (ICMP only)".yellow()
                 );
