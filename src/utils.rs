@@ -1,12 +1,10 @@
 use ipnet::Ipv4Net;
-use std::sync::{Mutex, Arc};
-use threadpool::ThreadPool;
+use spinners::{Spinner, Spinners};
 use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
-use futures::future::join_all;
 use std::net::IpAddr;
 use std::time::Duration;
 use rand::random;
-use tokio::{time, task};
+use tokio::{time};
 
 // Utilities module (ping, MAC detection, IP duplicity det, formatting, etc)
 pub struct Args{
@@ -23,14 +21,14 @@ async fn ping(client: Client, addr: IpAddr) -> (bool, String){
     pinger.timeout(Duration::from_secs(1));
     let mut interval = time::interval(Duration::from_secs(1));
 
-    for idx in 0..4 { //Retrys
+    for idx in 0..5 { //Retrys
 
         interval.tick().await;
         match pinger.ping(PingSequence(idx), &payload).await {
 
-            Ok((IcmpPacket::V4(packet), dur)) => { 
+            Ok((IcmpPacket::V4(_packet), _dur)) => { 
                 
-                println!(
+                /*println!(
                 "No.{}: {} bytes from {}: icmp_seq={} ttl={:?} time={:0.2?}",
                 idx,
                 packet.get_size(),
@@ -38,7 +36,7 @@ async fn ping(client: Client, addr: IpAddr) -> (bool, String){
                 packet.get_sequence(),
                 packet.get_ttl(),
                 dur
-            );
+            );*/
 
             return (true, addr.to_string());
         },
@@ -57,15 +55,14 @@ async fn ping(client: Client, addr: IpAddr) -> (bool, String){
             return (true, addr.to_string());
         },
 
-            Err(e) => {},
+            Err(_e) => {},
         };
     }
     return (false, "nada".to_string());
-    //println!("[+] {} done.", pinger.host);
 }
 
 
-pub async fn scan(network: &str) -> Result<(), Box<dyn std::error::Error>>{
+pub async fn scan(network: &str) -> Result<Vec<String>, Box<dyn std::error::Error>>{
 
     let net :Ipv4Net = network.parse().unwrap();
     let client_v4 = Client::new(&Config::default())?;
@@ -98,21 +95,31 @@ pub async fn scan(network: &str) -> Result<(), Box<dyn std::error::Error>>{
                 let host = st.to_string();
                 responsive_hosts.push(host);
             }
-            Ok((false, st)) => {}
+            Ok((false, _st)) => {}
             Err(_) => {}
         }
     }
-    println!("{:?}", responsive_hosts.len());
     //join_all(tasks).await;
 
-    Ok(())
-}
-
-fn get_mac() -> String{ // Return MAC as string
-    todo!()
+    Ok(responsive_hosts)
 }
 
 #[tokio::main]
 pub async fn run() {
-    let _ = scan("10.0.0.0/21").await;
+
+    let mut sp = Spinner::new(Spinners::Dots11, "Scanning network".into());
+
+    let scan = scan("192.168.100.0/24").await;
+    
+    sp.stop_with_newline();
+
+    match scan{
+        Ok(vec) => {
+            println!("[+] There are {} active hosts. (ICMP only)", vec.len());
+            for e in vec{
+                println!("{}", e)
+            }
+        },
+        Err(_) => {}
+    }
 }
