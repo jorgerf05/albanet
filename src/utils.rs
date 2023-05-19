@@ -115,8 +115,8 @@ pub async fn scan(
 #[tokio::main]
 pub async fn run(network: String, retries: u16, timeout: u64) {
 
-    let text = "Scanning network".green();
-    let mut sp = Spinner::new(Spinners::Aesthetic, text.to_string());
+    let text = "Scanning network...".green();
+    let mut sp = Spinner::new(Spinners::BouncingBar, text.to_string());
 
     let scan = scan(&network, retries, timeout).await;
     
