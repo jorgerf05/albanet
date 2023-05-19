@@ -4,24 +4,18 @@ use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP}
 use std::net::IpAddr;
 use std::time::Duration;
 use rand::random;
-use tokio::{time};
-
-// Utilities module (ping, MAC detection, IP duplicity det, formatting, etc)
-pub struct Args{
-    pub network: String,
-    pub timeout: i32,
-    pub get_mac: bool
-}
+use tokio::time;
+use colored::Colorize;
 
 
-async fn ping(client: Client, addr: IpAddr) -> (bool, String){
+async fn ping(client: Client, addr: IpAddr, retries: u16, timeout: u64) -> (bool, String){
 
     let payload = [0; 56];
     let mut pinger = client.pinger(addr, PingIdentifier(random())).await;
-    pinger.timeout(Duration::from_secs(1));
+    pinger.timeout(Duration::from_secs(timeout));
     let mut interval = time::interval(Duration::from_secs(1));
 
-    for idx in 0..5 { //Retrys
+    for idx in 0 .. retries{ //Retrys
 
         interval.tick().await;
         match pinger.ping(PingSequence(idx), &payload).await {
@@ -62,7 +56,11 @@ async fn ping(client: Client, addr: IpAddr) -> (bool, String){
 }
 
 
-pub async fn scan(network: &str) -> Result<Vec<String>, Box<dyn std::error::Error>>{
+pub async fn scan(
+    network: &str, 
+    retries: u16,
+    timeout: u64
+) -> Result<Vec<String>, Box<dyn std::error::Error>>{
 
     let net :Ipv4Net = network.parse().unwrap();
     let client_v4 = Client::new(&Config::default())?;
@@ -78,10 +76,20 @@ pub async fn scan(network: &str) -> Result<Vec<String>, Box<dyn std::error::Erro
         match ip.parse() {
 
             Ok(IpAddr::V4(addr)) => { // Call ping with IPV4
-                tasks.push(tokio::spawn(ping(client_v4.clone(), IpAddr::V4(addr))))
+                tasks.push(tokio::spawn(ping(
+                    client_v4.clone(), 
+                    IpAddr::V4(addr),
+                    retries, 
+                    timeout
+                )))
             }
             Ok(IpAddr::V6(addr)) => { // Call ping with IPV6
-                tasks.push(tokio::spawn(ping(client_v6.clone(), IpAddr::V6(addr))))
+                tasks.push(tokio::spawn(ping(
+                    client_v6.clone(),
+                    IpAddr::V6(addr),
+                    retries, 
+                    timeout
+                )))
             }// Not valid
             Err(e) => println!("{} parse to ipaddr error: {}", ip, e),
         }
@@ -105,19 +113,25 @@ pub async fn scan(network: &str) -> Result<Vec<String>, Box<dyn std::error::Erro
 }
 
 #[tokio::main]
-pub async fn run() {
+pub async fn run(network: String, retries: u16, timeout: u64) {
 
-    let mut sp = Spinner::new(Spinners::Dots11, "Scanning network".into());
+    let text = "Scanning network".green();
+    let mut sp = Spinner::new(Spinners::Aesthetic, text.to_string());
 
-    let scan = scan("192.168.100.0/24").await;
+    let scan = scan(&network, retries, timeout).await;
     
     sp.stop_with_newline();
 
     match scan{
         Ok(vec) => {
-            println!("[+] There are {} active hosts. (ICMP only)", vec.len());
+            println!(
+                "{} {} {}",
+                "\n[+] There are".yellow(),
+                 vec.len().to_string().green(),
+                 "active hosts. (ICMP only)".yellow()
+                );
             for e in vec{
-                println!("{}", e)
+                println!("-> {}", e)
             }
         },
         Err(_) => {}
