@@ -8,3 +8,23 @@ edition = "2021"
 [dependencies]
 threadpool = "1.8.1"
 ipnet = "2.7.2"
+json = "0.12.4"
+surge-ping = "0.8.0"
+
+hex = "0.4.3"
+parking_lot = "0.12.1"
+pnet_packet = "0.33"
+rand = "0.8.5"
+socket2 = { version = "0.5.1", features = ["all"] }
+thiserror = "1.0.40"
+tokio = { version = "1.27", features = ["full"] }
+tracing = "0.1.37"
+futures = "0.3.25"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+structopt = "0.3.26"
+pretty_env_logger = "0.4.0"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3.25"
