@@ -1,14 +1,18 @@
 use ipnet::Ipv4Net;
 use spinners::{Spinner, Spinners};
 use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
+use std::str::FromStr;
 use std::time::Duration;
 use rand::random;
 use tokio::time;
 use colored::Colorize;
+use libarp::{arp::ArpMessage, client::ArpClient, interfaces::Interface, interfaces::MacAddr};
 
-
-async fn ping(client: Client, addr: IpAddr, retries: u16, timeout: u64) -> (bool, String){
+async fn ping(client: Client, 
+    addr: IpAddr, 
+    retries: u16, 
+    timeout: u64) -> (bool, String){
 
     let payload = [0; 56];
     let mut pinger = client.pinger(addr, PingIdentifier(random())).await;
@@ -112,6 +116,24 @@ pub async fn scan(
     Ok(responsive_hosts)
 }
 
+
+async fn resolve_simple(ip: &str) {
+
+    let ip_addr = Ipv4Addr::from_str(ip).unwrap();
+    let mut client = ArpClient::new().unwrap();
+
+    let result = client.ip_to_mac(ip_addr, None);
+    match result.await{
+        Ok(addr) => {
+            println!("Ip {} has MAC {}",
+            ip_addr.to_string(),
+            addr
+        );
+        },
+        Err(_) => {}
+    }
+}
+
 #[tokio::main]
 pub async fn run(network: String, retries: u16, timeout: u64) {
 
@@ -119,6 +141,7 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
     let mut sp = Spinner::new(Spinners::BouncingBar, text.to_string());
 
     let scan = scan(&network, retries, timeout).await;
+    let scan_arp = resolve_simple("127.0.0.1").await;
     
     sp.stop_with_newline();
 
