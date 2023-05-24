@@ -19,7 +19,7 @@ async fn ping(client: Client,
     pinger.timeout(Duration::from_secs(timeout));
     let mut interval = time::interval(Duration::from_secs(1));
 
-    for idx in 0 .. retries{ //Retrys
+    for idx in 0 .. retries{
 
         interval.tick().await;
         match pinger.ping(PingSequence(idx), &payload).await {
@@ -95,7 +95,7 @@ pub async fn scan(
                     timeout
                 )))
             }// Not valid
-            Err(e) => println!("{} parse to ipaddr error: {}", ip, e),
+            Err(e) => println!("{} Parse to IpAddr error: {}", ip, e),
         }
         
     }
@@ -130,7 +130,7 @@ async fn resolve_simple(ip: &str) {
             addr
         );
         },
-        Err(_) => {}
+        Err(_) => println!("Could not get MAC")
     }
 }
 
@@ -139,10 +139,7 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
 
     let text = "Scanning network...".green();
     let mut sp = Spinner::new(Spinners::BouncingBar, text.to_string());
-
-    let scan = scan(&network, retries, timeout).await;
-    let scan_arp = resolve_simple("127.0.0.1").await;
-    
+    let scan = scan(&network, retries, timeout).await;    
     sp.stop_with_newline();
 
     match scan{
@@ -153,10 +150,12 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
                  vec.len().to_string().green(),
                  "active hosts. (ICMP only)".yellow()
                 );
+
             for e in vec{
-                println!("-> {}", e)
+                println!("-> {}", e);
             }
         },
         Err(_) => {}
+        
     }
 }
