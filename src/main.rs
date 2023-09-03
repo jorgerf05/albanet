@@ -33,7 +33,7 @@ fn main() {
 
     let args = Args::parse();
     if args.json.is_some(){
-        //parse json
+        //TODO: parse json
     }
     else {
         utils::run(
@@ -46,7 +46,7 @@ fn main() {
     let t1 = std::time::Instant::now();
     let elapsed = t1.duration_since(t0).as_secs_f32();
     println!(
-        "Scan completed in {:.2} seconds.",
+        "\nScan completed in {:.2} seconds.",
         elapsed
     )
 }   

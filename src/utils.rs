@@ -108,8 +108,8 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
     match scan_results{
         Ok(pos_results) => {
             println!(
-                "{} {} {}",
-                "[+] There are".yellow(),
+                "{} {} {}", // This line is necessary because of the 3 colors used
+                "[+] Found".yellow(),
                  pos_results.len().to_string().green(),
                  "active hosts. (ICMP only)".yellow()
                 );
