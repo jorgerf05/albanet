@@ -3,3 +3,4 @@ main.py
 scanner.py
 __pycache__/scanner.cpython-310.pyc
 /tests
+/.vscode
