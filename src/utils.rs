@@ -1,17 +1,19 @@
 use ipnet::Ipv4Net;
 use spinners::{Spinner, Spinners};
 use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::time::Duration;
 use rand::random;
 use tokio::time;
 use colored::Colorize;
 
-
-async fn ping(client: Client, 
+// Main ping function. 
+async fn ping(
+    client: Client, 
     addr: IpAddr, 
     retries: u16, 
-    timeout: u64) -> (bool, String){
+    timeout: u64
+) -> (bool, String){
 
     let payload = [0; 56];
     let mut pinger = client.pinger(addr, PingIdentifier(random())).await;
@@ -24,33 +26,12 @@ async fn ping(client: Client,
         match pinger.ping(PingSequence(idx), &payload).await {
 
             Ok((IcmpPacket::V4(_packet), _dur)) => { 
-                
-                /*println!(
-                "No.{}: {} bytes from {}: icmp_seq={} ttl={:?} time={:0.2?}",
-                idx,
-                packet.get_size(),
-                packet.get_source(),
-                packet.get_sequence(),
-                packet.get_ttl(),relo
-                dur
-            );*/
+                return (true, addr.to_string());
+            },
 
-            return (true, addr.to_string());
-        },
             Ok((IcmpPacket::V6(packet), dur)) => { 
-
-                println!(
-                "No.{}: {} bytes from {}: icmp_seq={} hlim={} time={:0.2?}",
-                idx,
-                packet.get_size(),
-                packet.get_source(),
-                packet.get_sequence(),
-                packet.get_max_hop_limit(),
-                dur
-            );
-
-            return (true, addr.to_string());
-        },
+                return (true, addr.to_string());
+            },
 
             Err(_e) => {},
         };
@@ -75,7 +56,6 @@ pub async fn scan(
     for host in net.hosts() {
 
         let ip = host.to_string();
-
         match ip.parse() {
 
             Ok(IpAddr::V4(addr)) => { // Call ping with IPV4
@@ -99,19 +79,20 @@ pub async fn scan(
         
     }
 
+    // Now we'll wait for every thread and capture its output
     for task in tasks{
-
         match task.await{
+            // If we got a live host
             Ok((true, st)) => {
                 let host = st.to_string();
                 responsive_hosts.push(host);
             }
-            Ok((false, _st)) => {}
+            // Else
+            Ok((false, _)) => {}
             Err(_) => {}
         }
     }
-    //join_all(tasks).await;
-
+    // And lastly, we return the live hosts vector
     Ok(responsive_hosts)
 }
 
@@ -121,19 +102,19 @@ pub async fn run(network: String, retries: u16, timeout: u64) {
 
     let text = "Scanning network...".green();
     let mut sp = Spinner::new(Spinners::BouncingBar, text.to_string());
-    let scan = scan(&network, retries, timeout).await;    
+    let scan_results = scan(&network, retries, timeout).await;    
     sp.stop_with_newline();
 
-    match scan{
-        Ok(vec) => {
+    match scan_results{
+        Ok(pos_results) => {
             println!(
                 "{} {} {}",
                 "[+] There are".yellow(),
-                 vec.len().to_string().green(),
+                 pos_results.len().to_string().green(),
                  "active hosts. (ICMP only)".yellow()
                 );
 
-            for e in vec{
+            for e in pos_results{
                 println!("-> {}", e);
             }
         },

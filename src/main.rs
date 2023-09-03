@@ -1,4 +1,5 @@
 use clap::Parser;
+use chrono;
 mod utils;
 
 
@@ -23,8 +24,14 @@ struct Args {
 }
 fn main() {
 
-    let args = Args::parse();
+    let dt = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S");
+    let t0 = std::time::Instant::now();
+    println!(
+        "ALBANET v1.0.0\nStarting scan at {}",
+        dt
+    );
 
+    let args = Args::parse();
     if args.json.is_some(){
         //parse json
     }
@@ -35,4 +42,11 @@ fn main() {
             args.timeout
         );
     }
+    
+    let t1 = std::time::Instant::now();
+    let elapsed = t1.duration_since(t0).as_secs_f32();
+    println!(
+        "Scan completed in {:.2} seconds.",
+        elapsed
+    )
 }   
